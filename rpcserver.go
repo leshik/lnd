@@ -534,9 +534,17 @@ func (r *rpcServer) Start() error {
 	// TODO(roasbeef): eventually also allow the sub-servers to themselves
 	// have a REST proxy.
 	mux := proxy.NewServeMux()
+	grpcEndpoint := cfg.RPCListeners[0].String()
+	switch {
+	case strings.Contains(grpcEndpoint, "0.0.0.0"):
+		grpcEndpoint = strings.Replace(
+			grpcEndpoint, "0.0.0.0", "127.0.0.1", 1,
+		)
+	case strings.Contains(grpcEndpoint, "[::]"):
+		grpcEndpoint = strings.Replace(grpcEndpoint, "[::]", "[::1]", 1)
+	}
 	err := lnrpc.RegisterLightningHandlerFromEndpoint(
-		context.Background(), mux, cfg.RPCListeners[0].String(),
-		r.restServerOpts,
+		context.Background(), mux, grpcEndpoint, r.restServerOpts,
 	)
 	if err != nil {
 		return err
